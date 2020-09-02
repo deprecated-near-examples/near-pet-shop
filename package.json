@@ -1,0 +1,22 @@
+{
+  "name": "near-pet-shop",
+  "version": "1.0.0",
+  "description": "Truffle's Pet Shop tutorial running on the NEAR EVM",
+  "main": "truffle.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "dev": "yarn parcel src/index.html --open",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "parcel-bundler": "^1.12.4"
+  },
+  "dependencies": {
+    "near-web3-provider": "https://github.com/near/near-web3-provider",
+    "regenerator-runtime": "^0.13.7"
+  }
+}
