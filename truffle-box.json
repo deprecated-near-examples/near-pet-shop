@@ -5,7 +5,7 @@
   ],
   "commands": {
     "Compile contracts": "truffle compile",
-    "Migrate contracts": "truffle migrate"
+    "Migrate contracts": "truffle migrate --network nearTestnet"
   },
   "hooks": {
     "post-unpack": "npm i"
