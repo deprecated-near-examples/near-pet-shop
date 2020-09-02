@@ -6,6 +6,8 @@ You may read more about the NEAR EVM in the link above, but suffice it to say it
 
 ### Install
 
+    mkdir near-pet-shop
+    cd near-pet-shop
     npx truffle unbox near-examples/near-pet-shop
 
 ### Compile (Optional)
