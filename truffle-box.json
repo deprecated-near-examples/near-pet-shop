@@ -5,7 +5,8 @@
   ],
   "commands": {
     "Compile contracts": "truffle compile",
-    "Migrate contracts": "truffle migrate --network nearTestnet"
+    "Migrate contracts": "truffle migrate --network nearTestnet",
+    "Serve local webapp": "npm run dev"
   },
   "hooks": {
     "post-unpack": "npm i"
