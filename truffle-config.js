@@ -1,16 +1,17 @@
 const { NearProvider } = require('near-web3-provider');
 
-const NEAR_TESTNET_URL = 'https://rpc.testnet.near.org';
-const NEAR_LOCAL_NETWORK_ID = 'default';
-const NEAR_LOCAL_ACCOUNT_ID = 'evm.demo.testnet';
-const NEAR_LOCAL_EVM = 'evm.demo.testnet';
+const NEAR_ACCOUNT_ID = 'adopter.test.near';
+const NEAR_NETWORK_ID = 'default';
+const NEAR_URL = 'http://34.82.212.1:3030';
+const NEAR_EXPLORER_URL = '';
+const NEAR_EVM = 'evm';
 
 function NearTestNetProvider() {
   return new NearProvider({
-    nodeUrl: NEAR_TESTNET_URL,
-    networkId: NEAR_LOCAL_NETWORK_ID,
-    masterAccountId: NEAR_LOCAL_ACCOUNT_ID,
-    evmAccountId: NEAR_LOCAL_EVM,
+    nodeUrl: NEAR_URL,
+    networkId: NEAR_NETWORK_ID,
+    masterAccountId: NEAR_ACCOUNT_ID,
+    evmAccountId: NEAR_EVM,
   });
 }
 
