@@ -16,7 +16,7 @@
     "parcel-bundler": "^1.12.4"
   },
   "dependencies": {
-    "near-web3-provider": "https://github.com/near/near-web3-provider",
+    "near-web3-provider": "near/near-web3-provider#precompile",
     "regenerator-runtime": "^0.13.7"
   }
 }
