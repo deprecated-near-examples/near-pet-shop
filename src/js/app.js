@@ -1,24 +1,49 @@
 require('regenerator-runtime/runtime');
-const { NearProvider, nearlib: nearAPI } = require('near-web3-provider');
-// Because we're using a function-call access key, this is the same as the NEAR_LOCAL_EVM
-const NEAR_LOCAL_ACCOUNT_ID = 'evm.demo.testnet';
-const NEAR_LOCAL_NETWORK_ID = 'default';
-const NEAR_LOCAL_URL = 'https://rpc.testnet.near.org';
-const NEAR_EXPLORER_URL = 'https://explorer.testnet.near.org';
-const NEAR_LOCAL_EVM = 'evm.demo.testnet';
+const { NearProvider, nearAPI } = require('near-web3-provider');
+// todo: probably remove the below and the dep
+const { ecrecover, hashPersonalMessage, isValidSignature, pubToAddress, bufferToHex, fromRpcSig, ecsign} = require('ethereumjs-util');
+const NEAR_ACCOUNT_ID = 'adopter.test.near';
+const NEAR_NETWORK_ID = 'default';
+const NEAR_URL = 'http://34.82.212.1:3030';
+const NEAR_EXPLORER_URL = '';
+const NEAR_EVM = 'evm';
+const RELAY_URL = 'http://127.0.0.1:3000'
 
 function NearTestNetProvider(keyStore) {
   return new NearProvider({
-    nodeUrl: NEAR_LOCAL_URL,
+    nodeUrl: NEAR_URL,
     keyStore,
-    networkId: NEAR_LOCAL_NETWORK_ID,
-    masterAccountId: NEAR_LOCAL_ACCOUNT_ID,
-    evmAccountId: NEAR_LOCAL_EVM,
+    networkId: NEAR_NETWORK_ID,
+    masterAccountId: NEAR_ACCOUNT_ID,
+    evmAccountId: NEAR_EVM,
   });
 }
 
+function NearRelayProvider(keyStore) {
+  return new NearProvider({
+    nodeUrl: RELAY_URL,
+    keyStore,
+    networkId: NEAR_NETWORK_ID,
+    masterAccountId: NEAR_ACCOUNT_ID,
+    evmAccountId: NEAR_EVM,
+  });
+}
+
+function parseSignature(signature) {
+  const r = signature.substring(0, 64);
+  const s = signature.substring(64, 128);
+  const v = parseInt(signature.substring(128, 130), 16);
+
+  return {
+    r: "0x" + r,
+    s: "0x" + s,
+    v
+  }
+}
+
 App = {
-  web3Provider: null,
+  nearWeb3Provider: null,
+  ethWeb3Provider: null,
   contracts: {},
 
   init: async function() {
@@ -43,6 +68,7 @@ App = {
       petTemplate.find('.pet-age').text(petsObj[i].age);
       petTemplate.find('.pet-location').text(petsObj[i].location);
       petTemplate.find('.btn-adopt').attr('data-id', petsObj[i].id);
+      petTemplate.find('.btn-sign').attr('data-id', petsObj[i].id);
 
       petsRow.append(petTemplate.html());
     }
@@ -54,19 +80,22 @@ App = {
     // This is the private key for a function-call access key on evm.demo.testnet that can call:
     //   * deploy_code
     //   * call_contract
-    let privateKey = 'xvWfjvV91wLEq81nEttH3KH3ajLZS1wgeGm8gHf8oGEUseCfZzN98zqWurmZKbBfgEHbQRUbSTMS7k8idWgxFUH';
+    let privateKey = '4aTwGQUFp6MfLi3BKDyjVHpWzsB7UfdfmcXTfZ39834nodyYmUnzRkzprXjWLdVRzgnjaueM35peVdEduznJskWY';
     const keyStore = new nearAPI.keyStores.InMemoryKeyStore();
-    // const keyPair = KeyPair.fromString(process.env.CLIENT_KEY_PAIR)
     if (process.env.CLIENT_KEY_PAIR && App.isJSON(process.env.CLIENT_KEY_PAIR)) {
       const environmentVariableKeyPair = JSON.parse(process.env.CLIENT_KEY_PAIR);
       console.log(`Found CLIENT_KEY_PAIR environment variable with public key: ${environmentVariableKeyPair.public_key}`)
       privateKey = environmentVariableKeyPair.private_key;
     }
     const keyPair = nearAPI.KeyPair.fromString(privateKey)
-    await keyStore.setKey(NEAR_LOCAL_NETWORK_ID, NEAR_LOCAL_ACCOUNT_ID, keyPair);
+    await keyStore.setKey(NEAR_NETWORK_ID, NEAR_ACCOUNT_ID, keyPair);
 
-    App.web3Provider = NearTestNetProvider(keyStore);
-    web3 = new Web3(App.web3Provider);
+    App.nearWeb3Provider = NearTestNetProvider(keyStore); // old one
+    App.nearRelayWeb3Provider = NearRelayProvider(keyStore);
+    App.ethWeb3Provider = window.ethereum;
+    nearWeb3 = new Web3(App.nearWeb3Provider);
+    nearRelayWeb3 = new Web3(App.nearRelayWeb3Provider);
+    ethWeb3 = new Web3(App.ethWeb3Provider);
 
     return App.initContract();
   },
@@ -76,9 +105,6 @@ App = {
     const adoptionObj = require('../../build/contracts/Adoption.json');
     App.contracts.Adoption = TruffleContract(adoptionObj);
 
-    // Set the provider for our contract
-    App.contracts.Adoption.setProvider(App.web3Provider);
-
     // Use our contract to retrieve and mark the adopted pets
     await App.markAdopted();
 
@@ -87,34 +113,41 @@ App = {
 
   bindEvents: function() {
     $(document).on('click', '.btn-adopt', App.handleAdopt);
+    $(document).on('click', '.btn-sign', App.handleSign);
   },
 
   markAdopted: async function() {
-    let adoptionInstance;
+    // Set provider to be our provider, as this is a "view" call
+    App.contracts.Adoption.setProvider(App.nearWeb3Provider);
 
+    let adoptionInstance;
     App.contracts.Adoption.deployed().then(function(instance) {
       adoptionInstance = instance;
       return adoptionInstance.getAdopters.call();
     }).then(function(adopters) {
       for (let i = 0; i < adopters.length; i++) {
         if (adopters[i] !== '0x0000000000000000000000000000000000000000') {
-          $('.panel-pet').eq(i).find('button').text('Success').attr('disabled', true);
+          $('.panel-pet').eq(i).find('button.btn-sign').hide();
+          $('.panel-pet').eq(i).find('button.btn-adopt').text('Success').attr('disabled', true);
         }
       }
     }).catch(function(err) {
-      console.log(err.message);
+      console.log(err);
     });
   },
 
   handleAdopt: function(event) {
     event.preventDefault();
 
+    App.contracts.Adoption.setProvider(App.nearWeb3Provider);
+
     const petId = parseInt($(event.target).data('id'));
-    $('.panel-pet').eq(petId).find('button').text('Processing…').attr('disabled', true);
+    $('.panel-pet').eq(petId).find('button.btn-sign').hide();
+    $('.panel-pet').eq(petId).find('button.btn-adopt').text('Processing…').attr('disabled', true);
 
     let adoptionInstance;
 
-    web3.eth.getAccounts(function(error, accounts) {
+    nearWeb3.eth.getAccounts(function(error, accounts) {
       if (error) {
         console.log(error);
       }
@@ -132,9 +165,102 @@ App = {
         console.log('Scroll to the top for a link to NEAR Explorer showing this transaction.')
         return App.markAdopted();
       }).catch(function(err) {
-        console.log(err.message);
+        console.log(err);
       });
     });
+  },
+
+  handleSign: async function(event) {
+    console.log('event', event);
+    event.preventDefault();
+    const petId = parseInt($(event.target).data('id'));
+    console.log('petId', petId);
+    const dogName = $('.panel-pet').eq(petId).find('.panel-title')[0].innerHTML;
+    console.log('dogName', dogName);
+
+    if (ethWeb3.eth.accounts[0] == null) {
+      $('#status-messages')[0].innerHTML = 'Opening MetaMask…';
+      try {
+        await ethWeb3.currentProvider.enable();
+      } catch (e) {
+        $('#status-messages')[0].innerHTML = `Issue with MetaMask: "${e.message}"`;
+        console.error(e);
+      }
+    }
+
+    $('#status-messages')[0].innerHTML = 'Waiting for signature approval…';
+
+    // TODO: modify this to add NearTx structure
+    // NearTx(string evmId, uint256 nonce, address contractAddress, bytes arguments)
+    // See: nearcore/runtime/near-evm-runner/src/utils.rs
+    const domain = [
+      { name: "name", type: "string" },
+      { name: "version", type: "string" },
+      { name: "chainId", type: "uint256" },
+    ];
+
+    const adoption = [
+      { name: "dogName", type: "string" },
+    ]
+
+    const chainId = parseInt(ethWeb3.version.network, 10);
+
+    const domainData = {
+      name: "NEAR",
+      version: "1",
+      chainId: chainId,
+    };
+
+    const message = {
+      amount: 6,
+      tokenAddress: "0x000000000000000000000000000000000000NEAR",
+      dogName,
+      contractMethod: "adopt"
+    };
+
+    const data = JSON.stringify({
+      types: {
+        EIP712Domain: domain,
+        Adoption: adoption,
+      },
+      domain: domainData,
+      primaryType: "Adoption",
+      message: message
+    });
+
+    const signer = ethWeb3.toChecksumAddress(ethWeb3.eth.accounts[0]);
+
+    ethWeb3.currentProvider.sendAsync(
+      {
+        method: "eth_signTypedData_v4",
+        params: [signer, data],
+        from: signer
+      },
+      function(err, result) {
+        if (err || result.error) {
+          $('#status-messages')[0].innerHTML = `User cancelled signature: "${result.error.message}"`;
+          return console.error(result);
+        }
+
+        const signature = parseSignature(result.result.substring(2));
+
+        const res = $('#response')[0];
+        res.innerHTML = `Signature:<br/>r: ${signature.r}<br/>s: ${signature.s}<br/>v: ${signature.v}`;
+        $('#status-messages')[0].innerHTML = '';
+        console.log('signature', signature);
+
+        const postData = {
+          data,
+          signature
+        };
+
+        $.post(RELAY_URL, postData)
+          .done( function( data ) {
+            console.log('data', data);
+          res.html = data;
+        });
+      }
+    );
   },
   isJSON: function(val) {
     try {
