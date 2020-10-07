@@ -10,14 +10,22 @@ h3 {
   color: #25282A;
 }
 
-#explorer-link {
+#explorer-link, #status-messages {
   font-size: 23px;
   text-align: center;
 }
 
-/*#explorer-link a {*/
-/*  color: cornflowerblue;*/
-/*}*/
+#response {
+  font-size: 17px;
+  text-align: center;
+  background-color: lightgoldenrodyellow;
+  color: black;
+}
+
+#status-messages {
+  color: white;
+  background-color: darkred;
+}
 
 #explorer-link a:visited, #explorer-link a {
   color: #6AD1E3;
