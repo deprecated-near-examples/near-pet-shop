@@ -1,7 +1,6 @@
 require('regenerator-runtime/runtime');
 const { NearProvider, nearAPI } = require('near-web3-provider');
-// todo: probably remove the below and the dep
-const { ecrecover, hashPersonalMessage, isValidSignature, pubToAddress, bufferToHex, fromRpcSig, ecsign} = require('ethereumjs-util');
+const Contract = require('web3-eth-contract');
 const NEAR_ACCOUNT_ID = 'adopter.test.near';
 const NEAR_NETWORK_ID = 'default';
 const NEAR_URL = 'http://34.82.212.1:3030';
@@ -103,12 +102,37 @@ App = {
   initContract: async function() {
     // Get the necessary contract artifact file and instantiate it with @truffle/contract
     const adoptionObj = require('../../build/contracts/Adoption.json');
-    App.contracts.Adoption = TruffleContract(adoptionObj);
+    const networkId = App.nearWeb3Provider.version;
+    const address = adoptionObj.networks[networkId].address;
+    App.contracts.Adoption = new Contract(adoptionObj.abi, address, {
+      from: address
+    });
 
     // Use our contract to retrieve and mark the adopted pets
     await App.markAdopted();
-
     return App.bindEvents();
+  },
+
+  getNonce: async function(ethAccountId) {
+    return await new Promise((resolve, reject) => {
+      nearWeb3.eth.getTransactionCount(ethAccountId, function (error, nonce) {
+        if (error) {
+          reject(error);
+        }
+        resolve(nonce);
+      });
+    });
+  },
+
+  getAccounts: async function(web3) {
+    return await new Promise((resolve, reject) => {
+      web3.eth.getAccounts(function (error, accounts) {
+        if (error) {
+          reject(error);
+        }
+        resolve(accounts);
+      });
+    });
   },
 
   bindEvents: function() {
@@ -120,63 +144,49 @@ App = {
     // Set provider to be our provider, as this is a "view" call
     App.contracts.Adoption.setProvider(App.nearWeb3Provider);
 
-    let adoptionInstance;
-    App.contracts.Adoption.deployed().then(function(instance) {
-      adoptionInstance = instance;
-      return adoptionInstance.getAdopters.call();
-    }).then(function(adopters) {
-      for (let i = 0; i < adopters.length; i++) {
-        if (adopters[i] !== '0x0000000000000000000000000000000000000000') {
-          $('.panel-pet').eq(i).find('button.btn-sign').hide();
-          $('.panel-pet').eq(i).find('button.btn-adopt').text('Success').attr('disabled', true);
-        }
+    const getAdoptersInstance = await App.contracts.Adoption.methods.getAdopters.call();
+    // Unclear why I must do a second call here
+    const adopters = await getAdoptersInstance.call();
+    adopters.forEach((adopter, i) => {
+      if (adopter !== '0x0000000000000000000000000000000000000000') {
+        $('.panel-pet').eq(i).find('button.btn-sign').hide();
+        $('.panel-pet').eq(i).find('button.btn-adopt').text('Success').attr('disabled', true);
       }
-    }).catch(function(err) {
-      console.log(err);
     });
   },
 
-  handleAdopt: function(event) {
+  handleAdopt: async function(event) {
     event.preventDefault();
 
     App.contracts.Adoption.setProvider(App.nearWeb3Provider);
+    // const test = await nearWeb3.eth.getAccounts();
 
     const petId = parseInt($(event.target).data('id'));
     $('.panel-pet').eq(petId).find('button.btn-sign').hide();
     $('.panel-pet').eq(petId).find('button.btn-adopt').text('Processing…').attr('disabled', true);
 
-    let adoptionInstance;
+    const accounts = await App.getAccounts(nearWeb3);
+    const account = accounts[0];
 
-    nearWeb3.eth.getAccounts(function(error, accounts) {
-      if (error) {
-        console.log(error);
-      }
-      const account = accounts[0];
-
-      App.contracts.Adoption.deployed().then(function(instance) {
-        adoptionInstance = instance;
-        // Execute adopt as a transaction by sending account
-        return adoptionInstance.adopt(petId, {from: account});
-      }).then(function(result) {
-        const transactionId = result.tx.split(':')[0];
-        const dogName = $('.panel-pet').eq(petId).find('.panel-title')[0].innerHTML;
-        $('#explorer-link a').attr('href', `${NEAR_EXPLORER_URL}/transactions/${transactionId}`).text(`See ${dogName}'s adoption in NEAR Explorer`);
-        console.log(`Thank you for adopting ${dogName}! 🐶🐶🐶`)
-        console.log('Scroll to the top for a link to NEAR Explorer showing this transaction.')
-        return App.markAdopted();
-      }).catch(function(err) {
-        console.log(err);
-      });
-    });
+    const adoptionResult = await App.contracts.Adoption.methods.adopt(petId).send({from: account});
+    console.log('adoptionResult from NEAR', adoptionResult)
+    const transactionId = adoptionResult.transactionHash.split(':')[0];
+    const dogName = $('.panel-pet').eq(petId).find('.panel-title')[0].innerHTML;
+    $('#explorer-link a').attr('href', `${NEAR_EXPLORER_URL}/transactions/${transactionId}`).text(`See ${dogName}'s adoption in NEAR Explorer`);
+    console.log(`Thank you for adopting ${dogName}! 🐶🐶🐶`)
+    console.log('Scroll to the top for a link to NEAR Explorer showing this transaction.')
+    return App.markAdopted();
   },
 
   handleSign: async function(event) {
-    console.log('event', event);
     event.preventDefault();
+    const accounts = await App.getAccounts(nearWeb3);
+    const account = accounts[0];
+    const nonce = await App.getNonce(account);
+    console.log(`Account ${account} has nonce ${nonce}`);
+
     const petId = parseInt($(event.target).data('id'));
-    console.log('petId', petId);
     const dogName = $('.panel-pet').eq(petId).find('.panel-title')[0].innerHTML;
-    console.log('dogName', dogName);
 
     if (ethWeb3.eth.accounts[0] == null) {
       $('#status-messages')[0].innerHTML = 'Opening MetaMask…';
@@ -266,7 +276,6 @@ App = {
     try {
       JSON.parse(val);
     } catch (e) {
-      console.warn('Please check your CLIENT_KEY_PAIR environment variable.');
       return false;
     }
     return true;
