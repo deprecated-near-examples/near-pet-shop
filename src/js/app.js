@@ -28,18 +28,6 @@ function NearRelayProvider(keyStore) {
   });
 }
 
-function parseSignature(signature) {
-  const r = signature.substring(0, 64);
-  const s = signature.substring(64, 128);
-  const v = parseInt(signature.substring(128, 130), 16);
-
-  return {
-    r: "0x" + r,
-    s: "0x" + s,
-    v
-  }
-}
-
 App = {
   nearWeb3Provider: null,
   ethWeb3Provider: null,
@@ -203,39 +191,40 @@ App = {
     // TODO: modify this to add NearTx structure
     // NearTx(string evmId, uint256 nonce, address contractAddress, bytes arguments)
     // See: nearcore/runtime/near-evm-runner/src/utils.rs
-    const domain = [
-      { name: "name", type: "string" },
-      { name: "version", type: "string" },
-      { name: "chainId", type: "uint256" },
-    ];
-
-    const adoption = [
-      { name: "dogName", type: "string" },
-    ]
 
     const chainId = parseInt(ethWeb3.version.network, 10);
 
-    const domainData = {
-      name: "NEAR",
-      version: "1",
-      chainId: chainId,
-    };
-
-    const message = {
-      amount: 6,
-      tokenAddress: "0x000000000000000000000000000000000000NEAR",
-      dogName,
-      contractMethod: "adopt"
-    };
-
     const data = JSON.stringify({
       types: {
-        EIP712Domain: domain,
-        Adoption: adoption,
+        EIP712Domain: [
+          { name: "name", type: "string" },
+          { name: "version", type: "string" },
+          { name: "chainId", type: "uint256" },
+        ],
+        AdoptionData: [
+          { name: "dogName", type: "string" },
+        ],
+        Message: [
+          { name: "amount", type: "uint256" },
+          { name: "tokenAddress", type: "address" },
+          { name: "adoptionData", type: "AdoptionData" },
+          { name: "contractMethod", type: "string" },
+        ]
       },
-      domain: domainData,
-      primaryType: "Adoption",
-      message: message
+      primaryType: "Message",
+      domain: {
+        name: "NEAR",
+        version: "1",
+        chainId: chainId,
+      },
+      message: {
+        amount: '6',
+        tokenAddress: '0x0000000000000000000000000000000000000000',
+        adoptionData: {
+          dogName,
+        },
+        contractMethod: "adopt"
+      }
     });
 
     const signer = ethWeb3.toChecksumAddress(ethWeb3.eth.accounts[0]);
@@ -251,13 +240,11 @@ App = {
           $('#status-messages')[0].innerHTML = `User cancelled signature: "${result.error.message}"`;
           return console.error(result);
         }
-
-        const signature = parseSignature(result.result.substring(2));
-
-        const res = $('#response')[0];
-        res.innerHTML = `Signature:<br/>r: ${signature.r}<br/>s: ${signature.s}<br/>v: ${signature.v}`;
-        $('#status-messages')[0].innerHTML = '';
+        const signature = result.result.substr(2);
         console.log('signature', signature);
+        const res = $('#response')[0];
+        res.innerHTML = `Signature:<br/>${signature}`;
+        $('#status-messages')[0].innerHTML = '';
 
         const postData = {
           data,
