@@ -33,3 +33,7 @@ There is a special key pair located in `./neardev/default/evm.demo.testnet.json`
 This repository tries to maintain as much similarity as possible to the original Pet Shop. The primary goal is to demonstrate that the Pet Shop Solidity contracts can be compiled and migrated using Truffle without having to rewrite into a more native smart contract language for NEAR.
 
 It's also worth noting that some JavaScript files (like `./src/js/app.js`) will be very similar to the Pet Shop files. This has resulted in a mix of jQuery and other dependencies, but serves as a way for developers to compare this code quite easily.  
+
+## Troubleshooting
+
+During development while changing the Solidity code, if unexpected behavior continues, consider removing the `build` folder and migrating again.
