@@ -15,10 +15,25 @@ function NearTestNetProvider() {
   });
 }
 
+function NearLocalProvider(keyStore) {
+  return new NearProvider({
+    nodeUrl: 'http://127.0.0.1:3030',
+    keyStore,
+    networkId: 'local',
+    masterAccountId: NEAR_ACCOUNT_ID,
+    evmAccountId: NEAR_EVM,
+  });
+}
+
 module.exports = {
   // See <http://truffleframework.com/docs/advanced/configuration>
   // for more about customizing your Truffle configuration!
   networks: {
+    nearLocal: {
+      network_id: "1313161555",
+      skipDryRun: true,
+      provider: () => NearLocalProvider(),
+    },
     nearTestnet: {
       network_id: "*",
       skipDryRun: true,

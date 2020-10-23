@@ -1,18 +1,31 @@
 require('regenerator-runtime/runtime');
-const { NearProvider, nearAPI } = require('near-web3-provider');
+const { NearProvider, nearAPI, consts } = require('near-web3-provider');
 const Contract = require('web3-eth-contract');
 const NEAR_ACCOUNT_ID = 'adopter.test.near';
-const NEAR_NETWORK_ID = 'default';
+const NEAR_TESTNET_NETWORK_ID = 'default';
+const NEAR_LOCAL_NETWORK_ID = 'local';
 const NEAR_URL = 'http://34.82.212.1:3030';
 const NEAR_EXPLORER_URL = '';
 const NEAR_EVM = 'evm';
 const RELAY_URL = 'http://127.0.0.1:3000'
 
+// Switch to use local or "testnet" which is a GCP instance
+
+function NearLocalProvider(keyStore) {
+  return new NearProvider({
+    nodeUrl: 'http://127.0.0.1:3030',
+    keyStore,
+    networkId: NEAR_LOCAL_NETWORK_ID,
+    masterAccountId: NEAR_ACCOUNT_ID,
+    evmAccountId: NEAR_EVM,
+  });
+}
+
 function NearTestNetProvider(keyStore) {
   return new NearProvider({
     nodeUrl: NEAR_URL,
     keyStore,
-    networkId: NEAR_NETWORK_ID,
+    networkId: NEAR_TESTNET_NETWORK_ID,
     masterAccountId: NEAR_ACCOUNT_ID,
     evmAccountId: NEAR_EVM,
   });
@@ -22,7 +35,7 @@ function NearRelayProvider(keyStore) {
   return new NearProvider({
     nodeUrl: RELAY_URL,
     keyStore,
-    networkId: NEAR_NETWORK_ID,
+    networkId: NEAR_TESTNET_NETWORK_ID,
     masterAccountId: NEAR_ACCOUNT_ID,
     evmAccountId: NEAR_EVM,
   });
@@ -32,6 +45,7 @@ App = {
   nearWeb3Provider: null,
   ethWeb3Provider: null,
   contracts: {},
+  adoptionAddress: null,
 
   init: async function() {
     // Load pets.
@@ -75,9 +89,10 @@ App = {
       privateKey = environmentVariableKeyPair.private_key;
     }
     const keyPair = nearAPI.KeyPair.fromString(privateKey)
-    await keyStore.setKey(NEAR_NETWORK_ID, NEAR_ACCOUNT_ID, keyPair);
-
-    App.nearWeb3Provider = NearTestNetProvider(keyStore); // old one
+    // await keyStore.setKey(NEAR_TESTNET_NETWORK_ID, NEAR_ACCOUNT_ID, keyPair);
+    // App.nearWeb3Provider = NearTestNetProvider(keyStore); // old one
+    await keyStore.setKey(NEAR_LOCAL_NETWORK_ID, NEAR_ACCOUNT_ID, keyPair);
+    App.nearWeb3Provider = NearLocalProvider(keyStore); // old one
     App.nearRelayWeb3Provider = NearRelayProvider(keyStore);
     App.ethWeb3Provider = window.ethereum;
     nearWeb3 = new Web3(App.nearWeb3Provider);
@@ -91,9 +106,10 @@ App = {
     // Get the necessary contract artifact file and instantiate it with @truffle/contract
     const adoptionObj = require('../../build/contracts/Adoption.json');
     const networkId = App.nearWeb3Provider.version;
-    const address = adoptionObj.networks[networkId].address;
-    App.contracts.Adoption = new Contract(adoptionObj.abi, address, {
-      from: address
+    console.log('networkId', networkId);
+    App.adoptionAddress = adoptionObj.networks[networkId].address; // TODO: can probably make this in App.contractAddress
+    App.contracts.Adoption = new Contract(adoptionObj.abi, App.adoptionAddress, {
+      from: App.adoptionAddress
     });
 
     // Use our contract to retrieve and mark the adopted pets
@@ -145,10 +161,10 @@ App = {
 
   handleAdopt: async function(event) {
     event.preventDefault();
+    console.log('App.contracts.Adoption.methods', App.contracts.Adoption.methods);
+    return;
 
     App.contracts.Adoption.setProvider(App.nearWeb3Provider);
-    // const test = await nearWeb3.eth.getAccounts();
-
     const petId = parseInt($(event.target).data('id'));
     $('.panel-pet').eq(petId).find('button.btn-sign').hide();
     $('.panel-pet').eq(petId).find('button.btn-adopt').text('Processing…').attr('disabled', true);
@@ -168,13 +184,15 @@ App = {
 
   handleSign: async function(event) {
     event.preventDefault();
+    console.log(consts);
+
     const accounts = await App.getAccounts(nearWeb3);
     const account = accounts[0];
     const nonce = await App.getNonce(account);
     console.log(`Account ${account} has nonce ${nonce}`);
 
     const petId = parseInt($(event.target).data('id'));
-    const dogName = $('.panel-pet').eq(petId).find('.panel-title')[0].innerHTML;
+    console.log('petId', petId);
 
     if (ethWeb3.eth.accounts[0] == null) {
       $('#status-messages')[0].innerHTML = 'Opening MetaMask…';
@@ -192,7 +210,8 @@ App = {
     // NearTx(string evmId, uint256 nonce, address contractAddress, bytes arguments)
     // See: nearcore/runtime/near-evm-runner/src/utils.rs
 
-    const chainId = parseInt(ethWeb3.version.network, 10);
+    const chainId = parseInt(nearWeb3.currentProvider.version, 10);
+    console.log('aloha chainId', chainId);
 
     const data = JSON.stringify({
       types: {
@@ -201,29 +220,35 @@ App = {
           { name: "version", type: "string" },
           { name: "chainId", type: "uint256" },
         ],
-        AdoptionData: [
-          { name: "dogName", type: "string" },
+        Arguments: [
+          { name: "petId", type: "uint256" },
         ],
-        Message: [
-          { name: "amount", type: "uint256" },
-          { name: "tokenAddress", type: "address" },
-          { name: "adoptionData", type: "AdoptionData" },
+        NearTx: [
+          { name: "evmId", type: "string" },
+          { name: "nonce", type: "uint256" },
+          { name: "feeAmount", type: "uint256" },
+          { name: "feeAddress", type: "address" },
+          { name: "contractAddress", type: "address" },
           { name: "contractMethod", type: "string" },
+          { name: "arguments", type: "Arguments" },
         ]
       },
-      primaryType: "Message",
+      primaryType: "NearTx",
       domain: {
         name: "NEAR",
         version: "1",
         chainId: chainId,
       },
       message: {
-        amount: '6',
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        adoptionData: {
-          dogName,
-        },
-        contractMethod: "adopt"
+        evmId: NEAR_EVM,
+        nonce,
+        feeAmount: '6',
+        feeAddress: '0x0000000000000000000000000000000000000000',
+        contractAddress: App.adoptionAddress,
+        contractMethod: 'adopt(uint256)',
+        arguments: {
+            petId,
+        }
       }
     });
 
