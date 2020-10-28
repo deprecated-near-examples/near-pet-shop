@@ -1,6 +1,7 @@
 require('regenerator-runtime/runtime');
 const { NearProvider, nearAPI, consts } = require('near-web3-provider');
 const Contract = require('web3-eth-contract');
+const { recoverTypedSignature_v4 } = require('eth-sig-util');
 const NEAR_ACCOUNT_ID = 'adopter.test.near';
 const NEAR_TESTNET_NETWORK_ID = 'default';
 const NEAR_LOCAL_NETWORK_ID = 'local';
@@ -276,11 +277,16 @@ App = {
           signature
         };
 
-        $.post(RELAY_URL, postData)
-          .done( function( data ) {
-            console.log('data', data);
-          res.html = data;
+        const recoveredAddress = recoverTypedSignature_v4({
+          data: JSON.parse(data), // this is just temporary, obvs
+          sig: `0x${signature}`
         });
+        console.log('recoveredAddress', recoveredAddress);
+        // $.post(RELAY_URL, postData)
+        //   .done( function( data ) {
+        //     console.log('data', data);
+        //   res.html = data;
+        // });
       }
     );
   },
