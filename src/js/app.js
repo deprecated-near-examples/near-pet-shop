@@ -93,7 +93,7 @@ App = {
     // await keyStore.setKey(NEAR_TESTNET_NETWORK_ID, NEAR_ACCOUNT_ID, keyPair);
     // App.nearWeb3Provider = NearTestNetProvider(keyStore); // old one
     await keyStore.setKey(NEAR_LOCAL_NETWORK_ID, NEAR_ACCOUNT_ID, keyPair);
-    App.nearWeb3Provider = NearLocalProvider(keyStore); // old one
+    App.nearWeb3Provider = window.ethereum; // NearLocalProvider(keyStore); // old one
     App.nearRelayWeb3Provider = NearRelayProvider(keyStore);
     App.ethWeb3Provider = window.ethereum;
     nearWeb3 = new Web3(App.nearWeb3Provider);
@@ -108,13 +108,13 @@ App = {
     const adoptionObj = require('../../build/contracts/Adoption.json');
     const networkId = App.nearWeb3Provider.version;
     console.log('networkId', networkId);
-    App.adoptionAddress = adoptionObj.networks[networkId].address; // TODO: can probably make this in App.contractAddress
+    App.adoptionAddress = '0xE5D4Dbb86d8bb8a001A613537C2e879902F8c2F4';// adoptionObj.networks[networkId].address; // TODO: can probably make this in App.contractAddress
     App.contracts.Adoption = new Contract(adoptionObj.abi, App.adoptionAddress, {
       from: App.adoptionAddress
     });
 
     // Use our contract to retrieve and mark the adopted pets
-    await App.markAdopted();
+    // await App.markAdopted();
     return App.bindEvents();
   },
 
@@ -211,7 +211,7 @@ App = {
     // NearTx(string evmId, uint256 nonce, address contractAddress, bytes arguments)
     // See: nearcore/runtime/near-evm-runner/src/utils.rs
 
-    const chainId = parseInt(nearWeb3.currentProvider.version, 10);
+    const chainId = 1313161555; //parseInt(nearWeb3.currentProvider.version, 10);
     console.log('aloha chainId', chainId);
 
     const data = JSON.stringify({
