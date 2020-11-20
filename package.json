@@ -7,7 +7,9 @@
     "test": "test"
   },
   "scripts": {
-    "dev": "parcel src/index.html",
+    "local": "env NEAR_NETWORK=local parcel src/index.html",
+    "betanet": "env NEAR_NETWORK=betanet parcel src/index.html",
+    "testnet": "env NEAR_NETWORK=testnet parcel src/index.html",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -16,7 +18,7 @@
     "parcel-bundler": "^1.12.4"
   },
   "dependencies": {
-    "near-web3-provider": "near/near-web3-provider#precompile",
+    "near-web3-provider": "^1.0.1",
     "regenerator-runtime": "^0.13.7",
     "web3-eth-contract": "^1.3.0"
   }

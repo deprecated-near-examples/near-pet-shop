@@ -1,51 +1,16 @@
 require('regenerator-runtime/runtime');
-const { NearProvider, nearAPI, consts } = require('near-web3-provider');
+const { nearAPI, consts } = require('near-web3-provider');
 const Contract = require('web3-eth-contract');
-const NEAR_ACCOUNT_ID = 'adopter.test.near';
-const NEAR_TESTNET_NETWORK_ID = 'default';
-const NEAR_LOCAL_NETWORK_ID = 'local';
-const NEAR_URL = 'http://34.82.212.1:3030';
-const NEAR_EXPLORER_URL = '';
-const NEAR_EVM = 'evm';
-const RELAY_URL = 'http://127.0.0.1:3000'
-
-// Switch to use local or "testnet" which is a GCP instance
-
-function NearLocalProvider(keyStore) {
-  return new NearProvider({
-    nodeUrl: 'http://127.0.0.1:3030',
-    keyStore,
-    networkId: NEAR_LOCAL_NETWORK_ID,
-    masterAccountId: NEAR_ACCOUNT_ID,
-    evmAccountId: NEAR_EVM,
-  });
-}
-
-function NearTestNetProvider(keyStore) {
-  return new NearProvider({
-    nodeUrl: NEAR_URL,
-    keyStore,
-    networkId: NEAR_TESTNET_NETWORK_ID,
-    masterAccountId: NEAR_ACCOUNT_ID,
-    evmAccountId: NEAR_EVM,
-  });
-}
-
-function NearRelayProvider(keyStore) {
-  return new NearProvider({
-    nodeUrl: RELAY_URL,
-    keyStore,
-    networkId: NEAR_TESTNET_NETWORK_ID,
-    masterAccountId: NEAR_ACCOUNT_ID,
-    evmAccountId: NEAR_EVM,
-  });
-}
+const { getConfig } = require('./config');
 
 App = {
   nearWeb3Provider: null,
   ethWeb3Provider: null,
   contracts: {},
   adoptionAddress: null,
+  nearNetwork: process.env.NEAR_NETWORK,
+  networkConfig: null,
+  walletConnection: null,
 
   init: async function() {
     // Load pets.
@@ -78,25 +43,20 @@ App = {
   },
 
   initWeb3: async function() {
-    // This is the private key for a function-call access key on evm.demo.testnet that can call:
-    //   * deploy_code
-    //   * call_contract
-    let privateKey = '4aTwGQUFp6MfLi3BKDyjVHpWzsB7UfdfmcXTfZ39834nodyYmUnzRkzprXjWLdVRzgnjaueM35peVdEduznJskWY';
-    const keyStore = new nearAPI.keyStores.InMemoryKeyStore();
-    if (process.env.CLIENT_KEY_PAIR && App.isJSON(process.env.CLIENT_KEY_PAIR)) {
-      const environmentVariableKeyPair = JSON.parse(process.env.CLIENT_KEY_PAIR);
-      console.log(`Found CLIENT_KEY_PAIR environment variable with public key: ${environmentVariableKeyPair.public_key}`)
-      privateKey = environmentVariableKeyPair.private_key;
-    }
-    const keyPair = nearAPI.KeyPair.fromString(privateKey)
-    // await keyStore.setKey(NEAR_TESTNET_NETWORK_ID, NEAR_ACCOUNT_ID, keyPair);
-    // App.nearWeb3Provider = NearTestNetProvider(keyStore); // old one
-    await keyStore.setKey(NEAR_LOCAL_NETWORK_ID, NEAR_ACCOUNT_ID, keyPair);
-    App.nearWeb3Provider = NearLocalProvider(keyStore); // old one
-    App.nearRelayWeb3Provider = NearRelayProvider(keyStore);
+    // Need to set up WalletConnection and then networkConfig
+    App.networkConfig = getConfig(new nearAPI.keyStores.BrowserLocalStorageKeyStore());
+    const nearConfig = {
+      networkId: App.networkConfig.provider.networkId,
+      nodeUrl: App.networkConfig.provider.url,
+      contractName: App.networkConfig.provider.evm_contract,
+      walletUrl: App.networkConfig.sites.walletUrl,
+      explorerUrl: App.networkConfig.sites.explorerUrl,
+    };
+    const near = await nearAPI.connect(Object.assign({ keyStore: new nearAPI.keyStores.BrowserLocalStorageKeyStore() }, nearConfig));
+    App.walletConnection = new nearAPI.WalletConnection(near);
+    App.nearWeb3Provider = App.networkConfig.provider;
     App.ethWeb3Provider = window.ethereum;
     nearWeb3 = new Web3(App.nearWeb3Provider);
-    nearRelayWeb3 = new Web3(App.nearRelayWeb3Provider);
     ethWeb3 = new Web3(App.ethWeb3Provider);
 
     return App.initContract();
@@ -106,11 +66,11 @@ App = {
     // Get the necessary contract artifact file and instantiate it with @truffle/contract
     const adoptionObj = require('../../build/contracts/Adoption.json');
     const networkId = App.nearWeb3Provider.version;
-    console.log('networkId', networkId);
-    App.adoptionAddress = adoptionObj.networks[networkId].address; // TODO: can probably make this in App.contractAddress
+    App.adoptionAddress = adoptionObj.networks[networkId].address;
     App.contracts.Adoption = new Contract(adoptionObj.abi, App.adoptionAddress, {
       from: App.adoptionAddress
     });
+    App.contracts.Adoption.setProvider(App.nearWeb3Provider);
 
     // Use our contract to retrieve and mark the adopted pets
     await App.markAdopted();
@@ -146,8 +106,6 @@ App = {
 
   markAdopted: async function() {
     // Set provider to be our provider, as this is a "view" call
-    App.contracts.Adoption.setProvider(App.nearWeb3Provider);
-
     const getAdoptersInstance = await App.contracts.Adoption.methods.getAdopters.call();
     // Unclear why I must do a second call here
     const adopters = await getAdoptersInstance.call();
@@ -161,10 +119,14 @@ App = {
 
   handleAdopt: async function(event) {
     event.preventDefault();
-    console.log('App.contracts.Adoption.methods', App.contracts.Adoption.methods);
-    return;
+    if (App.walletConnection.getAccountId() === '') {
+      // User needs to log in
+      App.walletConnection.requestSignIn(App.networkConfig.provider.evm_contract);
+      return;
+    } else {
+      App.networkConfig.provider.accountId = App.walletConnection.getAccountId();
+    }
 
-    App.contracts.Adoption.setProvider(App.nearWeb3Provider);
     const petId = parseInt($(event.target).data('id'));
     $('.panel-pet').eq(petId).find('button.btn-sign').hide();
     $('.panel-pet').eq(petId).find('button.btn-adopt').text('Processing…').attr('disabled', true);
@@ -173,26 +135,24 @@ App = {
     const account = accounts[0];
 
     const adoptionResult = await App.contracts.Adoption.methods.adopt(petId).send({from: account});
-    console.log('adoptionResult from NEAR', adoptionResult)
     const transactionId = adoptionResult.transactionHash.split(':')[0];
     const dogName = $('.panel-pet').eq(petId).find('.panel-title')[0].innerHTML;
-    $('#explorer-link a').attr('href', `${NEAR_EXPLORER_URL}/transactions/${transactionId}`).text(`See ${dogName}'s adoption in NEAR Explorer`);
+    $('#explorer-link a').attr('href', `${App.networkConfig.sites.explorerUrl}/transactions/${transactionId}`).text(`See ${dogName}'s adoption in NEAR Explorer`);
     console.log(`Thank you for adopting ${dogName}! 🐶🐶🐶`)
     console.log('Scroll to the top for a link to NEAR Explorer showing this transaction.')
     return App.markAdopted();
   },
 
+  // Relayer descoped for now
+  // Uncomment "Sign" button in index.html to enable functionality
   handleSign: async function(event) {
     event.preventDefault();
-    console.log(consts);
 
     const accounts = await App.getAccounts(nearWeb3);
     const account = accounts[0];
     const nonce = await App.getNonce(account);
-    console.log(`Account ${account} has nonce ${nonce}`);
 
     const petId = parseInt($(event.target).data('id'));
-    console.log('petId', petId);
 
     if (ethWeb3.eth.accounts[0] == null) {
       $('#status-messages')[0].innerHTML = 'Opening MetaMask…';
@@ -211,7 +171,6 @@ App = {
     // See: nearcore/runtime/near-evm-runner/src/utils.rs
 
     const chainId = parseInt(nearWeb3.currentProvider.version, 10);
-    console.log('aloha chainId', chainId);
 
     const data = JSON.stringify({
       types: {
@@ -240,7 +199,7 @@ App = {
         chainId: chainId,
       },
       message: {
-        evmId: NEAR_EVM,
+        evmId: App.networkConfig.provider.evm_contract,
         nonce,
         feeAmount: '6',
         feeAddress: '0x0000000000000000000000000000000000000000',
@@ -253,9 +212,7 @@ App = {
     });
 
     const signer = ethWeb3.toChecksumAddress(ethWeb3.eth.accounts[0]);
-
-    ethWeb3.currentProvider.sendAsync(
-      {
+    ethWeb3.currentProvider.sendAsync({
         method: "eth_signTypedData_v4",
         params: [signer, data],
         from: signer
@@ -266,7 +223,6 @@ App = {
           return console.error(result);
         }
         const signature = result.result.substr(2);
-        console.log('signature', signature);
         const res = $('#response')[0];
         res.innerHTML = `Signature:<br/>${signature}`;
         $('#status-messages')[0].innerHTML = '';
@@ -284,6 +240,7 @@ App = {
       }
     );
   },
+
   isJSON: function(val) {
     try {
       JSON.parse(val);

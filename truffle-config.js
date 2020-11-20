@@ -1,26 +1,21 @@
 const { NearProvider } = require('near-web3-provider');
-
-const NEAR_ACCOUNT_ID = 'adopter.test.near';
-const NEAR_NETWORK_ID = 'default';
-const NEAR_URL = 'http://34.82.212.1:3030';
-const NEAR_EXPLORER_URL = '';
+const BETANET_ACCOUNT_ID = '<changethis>'; // Create account at https://wallet.betanet.near.org/
 const NEAR_EVM = 'evm';
 
-function NearTestNetProvider() {
+function NearBetanetProvider() {
   return new NearProvider({
-    nodeUrl: NEAR_URL,
-    networkId: NEAR_NETWORK_ID,
-    masterAccountId: NEAR_ACCOUNT_ID,
+    nodeUrl: 'https://rpc.betanet.near.org',
+    networkId: 'betanet',
+    masterAccountId: BETANET_ACCOUNT_ID,
     evmAccountId: NEAR_EVM,
   });
 }
 
-function NearLocalProvider(keyStore) {
+function NearLocalProvider() {
   return new NearProvider({
     nodeUrl: 'http://127.0.0.1:3030',
-    keyStore,
     networkId: 'local',
-    masterAccountId: NEAR_ACCOUNT_ID,
+    masterAccountId: 'adopter.test.near',
     evmAccountId: NEAR_EVM,
   });
 }
@@ -30,16 +25,18 @@ module.exports = {
   // for more about customizing your Truffle configuration!
   networks: {
     nearLocal: {
-      network_id: "1313161555",
+      network_id: 1313161555,
       skipDryRun: true,
       provider: () => NearLocalProvider(),
     },
-    nearTestnet: {
-      network_id: "*",
+    nearBetanet: {
+      network_id: 1313161555,
       skipDryRun: true,
-      provider: () => NearTestNetProvider(),
+      provider: () => NearBetanetProvider(),
     },
     develop: {
+      host: "127.0.0.1",
+      network_id: "*",
       port: 8545
     }
   }
