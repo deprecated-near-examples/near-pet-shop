@@ -13,6 +13,20 @@ App = {
   walletConnection: null,
 
   init: async function() {
+    // Need to set up WalletConnection and then networkConfig
+    App.networkConfig = getConfig(new nearAPI.keyStores.BrowserLocalStorageKeyStore());
+    const nearConfig = {
+      networkId: App.networkConfig.provider.networkId,
+      nodeUrl: App.networkConfig.provider.url,
+      contractName: App.networkConfig.provider.evm_contract,
+      walletUrl: App.networkConfig.sites.walletUrl,
+      explorerUrl: App.networkConfig.sites.explorerUrl,
+    };
+    const near = await nearAPI.connect(Object.assign({ keyStore: new nearAPI.keyStores.BrowserLocalStorageKeyStore() }, nearConfig));
+    App.walletConnection = new nearAPI.WalletConnection(near);
+
+    const isLoggedIn = App.walletConnection.getAccountId() !== '';
+
     // Load pets.
     const petsObj = require('../pets.json');
     const petsRow = $('#petsRow');
@@ -35,6 +49,13 @@ App = {
       petTemplate.find('.pet-location').text(petsObj[i].location);
       petTemplate.find('.btn-adopt').attr('data-id', petsObj[i].id);
       petTemplate.find('.btn-sign').attr('data-id', petsObj[i].id);
+      if (!isLoggedIn) {
+        petTemplate.find('.btn-adopt').attr('disabled', 'disabled');
+        $('#status-messages')[0].innerHTML = 'Please log in to NEAR Wallet…';
+      } else {
+        $('#status-messages')[0].innerHTML = '';
+        $('.btn-login').hide();
+      }
 
       petsRow.append(petTemplate.html());
     }
@@ -43,17 +64,6 @@ App = {
   },
 
   initWeb3: async function() {
-    // Need to set up WalletConnection and then networkConfig
-    App.networkConfig = getConfig(new nearAPI.keyStores.BrowserLocalStorageKeyStore());
-    const nearConfig = {
-      networkId: App.networkConfig.provider.networkId,
-      nodeUrl: App.networkConfig.provider.url,
-      contractName: App.networkConfig.provider.evm_contract,
-      walletUrl: App.networkConfig.sites.walletUrl,
-      explorerUrl: App.networkConfig.sites.explorerUrl,
-    };
-    const near = await nearAPI.connect(Object.assign({ keyStore: new nearAPI.keyStores.BrowserLocalStorageKeyStore() }, nearConfig));
-    App.walletConnection = new nearAPI.WalletConnection(near);
     App.nearWeb3Provider = App.networkConfig.provider;
     App.ethWeb3Provider = window.ethereum;
     nearWeb3 = new Web3(App.nearWeb3Provider);
@@ -102,6 +112,7 @@ App = {
   bindEvents: function() {
     $(document).on('click', '.btn-adopt', App.handleAdopt);
     $(document).on('click', '.btn-sign', App.handleSign);
+    $(document).on('click', '.btn-login', App.handleLogin);
   },
 
   markAdopted: async function() {
@@ -117,22 +128,32 @@ App = {
     });
   },
 
-  handleAdopt: async function(event) {
+  handleLogin: async function(event) {
     event.preventDefault();
+
     if (App.walletConnection.getAccountId() === '') {
       // User needs to log in
       App.walletConnection.requestSignIn(App.networkConfig.provider.evm_contract);
-      return;
     } else {
       App.networkConfig.provider.accountId = App.walletConnection.getAccountId();
     }
+  },
+
+  handleAdopt: async function(event) {
+    event.preventDefault();
 
     const petId = parseInt($(event.target).data('id'));
     $('.panel-pet').eq(petId).find('button.btn-sign').hide();
     $('.panel-pet').eq(petId).find('button.btn-adopt').text('Processing…').attr('disabled', true);
 
     const accounts = await App.getAccounts(nearWeb3);
-    const account = accounts[0];
+    let account;
+    if (accounts.length) {
+      account = accounts[accounts.length - 1];
+    } else {
+      $('#status-messages')[0].innerHTML = 'Issue finding accounts…';
+      return;
+    }
 
     const adoptionResult = await App.contracts.Adoption.methods.adopt(petId).send({from: account});
     const transactionId = adoptionResult.transactionHash.split(':')[0];
