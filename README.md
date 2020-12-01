@@ -275,9 +275,7 @@ Lastly, we'll migrate (build and deploy) the Pet Shop to our local node and be a
 
 Navigate your terminal or command prompt back to the Pet Shop directory.
 
-## Betanet migration
-
-**Note**: instructions for migrating to a local NEAR node comes later in this document.
+## Localnet migration
     
     npx truffle migrate --network nearLocal
     
