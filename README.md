@@ -350,10 +350,10 @@ It's also worth noting that some JavaScript files (like `./src/js/app.js`) will 
 
 During development while changing the Solidity code, if unexpected behavior continues, consider removing the `build` folder and migrating again.
 
-If you are running into issues with your localnet, you may consider deleting the `~/.near/local` directory and running the `nearup` command again.
+If you are running into issues with your localnet, you may consider deleting the `~/.near/local` directory and running the nearcore build command again.
 
 If you're running into issues while running Explorer with messages seem to be database related, try running the command a couple more times or until the same log messages appear after each run.
 
-Wallet 
+If Wallet seems to be acting up, and the console log shows messages about old accounts, you may try to clear the local storage. In the browser's developer console: 
 
     localStorage.clear()
