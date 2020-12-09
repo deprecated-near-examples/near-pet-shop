@@ -2,6 +2,26 @@
 
 This section covers how to try the NEAR EVM on a local node. Note, this will take longer and require more resources from your computer than using Betanet. This is for those who prefer to develop everything locally.
 
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- Repositories and setup
+  - [Get Rust](#get-rust)
+  - [Set up NEAR node](#set-up-near-node)
+  - [Postgres](#postgres)
+  - [NEAR Contract Helper](#near-contract-helper)
+  - [NEAR CLI](#near-cli)
+  - [Linkdrop smart contract](#near-linkdrop)
+  - [NEAR Wallet](#near-wallet)
+  - [NEAR Explorer](#near-explorer)
+- Pet Shop instructions
+  - [Copying local keys](#copy-key-to-pet-shop)
+  - [Build, migrate, deploy](#localnet-migration)
+- [Notes](#notes)
+- [Troubleshooting](#troubleshooting)
+
+---
+
 ### Prerequisites
 
 - [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
@@ -264,35 +284,31 @@ Start the frontend on port 3019:
 
 Then visit the frontend at http://127.0.0.1:3019
 
----
+### Copy key to Pet Shop
 
-Lastly, we'll migrate (build and deploy) the Pet Shop to our local node and be able to use the various services we now have running.
-
-Navigate your terminal or command prompt back to the Pet Shop directory.
-
-## Copy key to Pet Shop
+Lastly, we'll migrate (build and deploy) the Pet Shop to our local node and be able to use the various services we now have running. Navigate your terminal or command prompt back to the Pet Shop directory.
 
 Each localnet will have its own unique key for the account `test.near` which is created. Copy that file into the project following the keystore naming convention:
 
     cp ~/.near/local/validator_key.json ./neardev/local/test.near.json
 
-## Localnet migration
+### Localnet migration
     
     npx truffle migrate --network nearLocal
     
-### Start web app
+Start web app:
 
     npm run local
     
 Open the local site at: http://localhost:1234 and begin interacting and adopting pets.
 
-## Notes
+### Notes
 
 This repository tries to maintain as much similarity as possible to the original Pet Shop. The primary goal is to demonstrate that the Pet Shop Solidity contracts can be compiled and migrated using Truffle without having to rewrite into a more native smart contract language for NEAR.
 
 It's also worth noting that some JavaScript files (like `./src/js/app.js`) will be very similar to the Pet Shop files. This has resulted in a mix of jQuery and other dependencies, but serves as a way for developers to compare this code quite easily.  
 
-## Troubleshooting
+### Troubleshooting
 
 During development while changing the Solidity code, if unexpected behavior continues, consider removing the `build` folder and migrating again.
 
