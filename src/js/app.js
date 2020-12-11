@@ -1,7 +1,6 @@
 require('regenerator-runtime/runtime');
-const { nearAPI, consts } = require('near-web3-provider');
+const { nearAPI, consts, NearProvider } = require('near-web3-provider');
 const Contract = require('web3-eth-contract');
-const { getConfig } = require('./config');
 
 App = {
   nearWeb3Provider: null,
@@ -14,15 +13,12 @@ App = {
 
   init: async function() {
     // Need to set up WalletConnection and then networkConfig
-    App.networkConfig = getConfig(new nearAPI.keyStores.BrowserLocalStorageKeyStore());
-    const nearConfig = {
-      networkId: App.networkConfig.provider.networkId,
-      nodeUrl: App.networkConfig.provider.url,
-      contractName: App.networkConfig.provider.evm_contract,
-      walletUrl: App.networkConfig.sites.walletUrl,
-      explorerUrl: App.networkConfig.sites.explorerUrl,
-    };
-    const near = await nearAPI.connect(Object.assign({ keyStore: new nearAPI.keyStores.BrowserLocalStorageKeyStore() }, nearConfig));
+    App.networkConfig = new NearProvider({
+      networkId: this.nearNetwork,
+      masterAccountId: process.env.NEAR_MASTER_ACCOUNT,
+      keyStore: new nearAPI.keyStores.BrowserLocalStorageKeyStore()
+    })
+    const near = await nearAPI.connect(Object.assign({ keyStore: App.networkConfig.keyStore }, App.networkConfig));
     App.walletConnection = new nearAPI.WalletConnection(near);
 
     const isLoggedIn = App.walletConnection.getAccountId() !== '';
@@ -64,7 +60,7 @@ App = {
   },
 
   initWeb3: async function() {
-    App.nearWeb3Provider = App.networkConfig.provider;
+    App.nearWeb3Provider = App.networkConfig;
     App.ethWeb3Provider = window.ethereum;
     nearWeb3 = new Web3(App.nearWeb3Provider);
     ethWeb3 = new Web3(App.ethWeb3Provider);
@@ -76,7 +72,12 @@ App = {
     // Get the necessary contract artifact file and instantiate it with @truffle/contract
     const adoptionObj = require('../../build/contracts/Adoption.json');
     const networkId = App.nearWeb3Provider.version;
-    App.adoptionAddress = adoptionObj.networks[networkId].address;
+    if (adoptionObj.networks[networkId]) {
+      App.adoptionAddress = adoptionObj.networks[networkId].address;
+    } else {
+      console.error('Could not find the contract address in Adoption.json, please make sure you\'ve followed the README in deploying the contract to the specified network.');
+      return;
+    }
     App.contracts.Adoption = new Contract(adoptionObj.abi, App.adoptionAddress, {
       from: App.adoptionAddress
     });
@@ -133,9 +134,9 @@ App = {
 
     if (App.walletConnection.getAccountId() === '') {
       // User needs to log in
-      App.walletConnection.requestSignIn(App.networkConfig.provider.evm_contract);
+      App.walletConnection.requestSignIn(App.networkConfig.evm_contract);
     } else {
-      App.networkConfig.provider.accountId = App.walletConnection.getAccountId();
+      App.networkConfig.accountId = App.walletConnection.getAccountId();
     }
   },
 
@@ -158,7 +159,7 @@ App = {
     const adoptionResult = await App.contracts.Adoption.methods.adopt(petId).send({from: account});
     const transactionId = adoptionResult.transactionHash.split(':')[0];
     const dogName = $('.panel-pet').eq(petId).find('.panel-title')[0].innerHTML;
-    $('#explorer-link a').attr('href', `${App.networkConfig.sites.explorerUrl}/transactions/${transactionId}`).text(`See ${dogName}'s adoption in NEAR Explorer`);
+    $('#explorer-link a').attr('href', `${App.networkConfig.explorerUrl}/transactions/${transactionId}`).text(`See ${dogName}'s adoption in NEAR Explorer`);
     console.log(`Thank you for adopting ${dogName}! 🐶🐶🐶`)
     console.log('Scroll to the top for a link to NEAR Explorer showing this transaction.')
     return App.markAdopted();
@@ -220,7 +221,7 @@ App = {
         chainId: chainId,
       },
       message: {
-        evmId: App.networkConfig.provider.evm_contract,
+        evmId: App.networkConfig.evm_contract,
         nonce,
         feeAmount: '6',
         feeAddress: '0x0000000000000000000000000000000000000000',
