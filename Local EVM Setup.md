@@ -294,7 +294,7 @@ Each localnet will have its own unique key for the account `test.near` which is 
 
 ### Localnet migration
     
-    npx truffle migrate --network nearLocal
+    npx truffle migrate --network near_local
     
 Start web app:
 

@@ -4,7 +4,7 @@ module.exports = {
   // See <http://truffleframework.com/docs/advanced/configuration>
   // for more about customizing your Truffle configuration!
   networks: {
-    nearLocal: {
+    near_local: {
       network_id: "*",
       skipDryRun: true,
       provider: () => new NearProvider({
@@ -12,11 +12,19 @@ module.exports = {
         masterAccountId: 'test.near',
       }),
     },
-    nearBetanet: {
+    near_betanet: {
       network_id: "*",
       skipDryRun: true,
       provider: () => new NearProvider({
         networkId: 'betanet',
+        masterAccountId: process.env.NEAR_MASTER_ACCOUNT
+      }),
+    },
+    near_testnet: {
+      network_id: "*",
+      skipDryRun: true,
+      provider: () => new NearProvider({
+        networkId: 'testnet',
         masterAccountId: process.env.NEAR_MASTER_ACCOUNT
       }),
     },

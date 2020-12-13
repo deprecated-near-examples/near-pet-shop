@@ -26,7 +26,7 @@ https://wallet.betanet.near.org
 
 **Note**: for instructions on migrating to a local NEAR environment, please read [this document](Local%20EVM%20Setup.md).
     
-    npx truffle migrate --network nearBetanet
+    npx truffle migrate --network near_betanet
     
 ## Start web app
 
