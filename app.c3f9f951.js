@@ -103497,30 +103497,12 @@ module.exports = {
     "1313161554": {
       "events": {},
       "links": {},
-      "address": "0xAdf11a39283CEB00DEB90a5cE9220F89c6C27E67",
-      "transactionHash": "FHo73dk5n1LujaGwHchrXMHzRBHz88aCNWex1kiLrC57:mike.betanet"
-    },
-    "1313161555": {
-      "events": {
-        "0xe394f06f3488774ebec1b3b2db4d3e8a524f3395b3109258c08816f65e5727c2": {
-          "anonymous": false,
-          "inputs": [{
-            "indexed": false,
-            "internalType": "address",
-            "name": "arg1",
-            "type": "address"
-          }],
-          "name": "LogArgs",
-          "type": "event"
-        }
-      },
-      "links": {},
-      "address": "0x08aB597d82B230F9118e3e44f60BA64C076F0a82",
-      "transactionHash": "CiLQSdb8cWTW5faofuWjQNFJfDpoNDxpJre8ahZJ6dvU:test.near"
+      "address": "0xE072f515E41c054aDc2470BC7958251316824085",
+      "transactionHash": "BkFiXWBC7qSMTsnJgZ7Fh53aE75PhJyGqanfXLwsQn3X:josh.betanet"
     }
   },
   "schemaVersion": "3.3.2",
-  "updatedAt": "2020-12-13T18:05:50.269Z",
+  "updatedAt": "2020-12-14T18:27:22.999Z",
   "networkType": "ethereum",
   "devdoc": {
     "methods": {}
@@ -103594,7 +103576,8 @@ App = {
                   petTemplate.find('.btn-adopt').attr('disabled', 'disabled');
                 } else {
                   $('#status-messages')[0].innerHTML = '';
-                  $('.btn-login').hide();
+                  $('.btn-login').addClass('logged-in');
+                  $('.btn-login')[0].innerText = 'Clear session';
                 }
 
                 petsRow.append(petTemplate.html());
@@ -103831,7 +103814,12 @@ App = {
         while (1) {
           switch (_context7.prev = _context7.next) {
             case 0:
-              event.preventDefault();
+              event.preventDefault(); // User clicked "Clear session"
+
+              if ($('.btn-login').hasClass('logged-in')) {
+                localStorage.clear();
+                window.location.reload(false);
+              }
 
               if (App.walletConnection.getAccountId() === '') {
                 // User needs to log in
@@ -103840,7 +103828,7 @@ App = {
                 App.networkConfig.accountId = App.walletConnection.getAccountId();
               }
 
-            case 2:
+            case 3:
             case "end":
               return _context7.stop();
           }
@@ -104102,7 +104090,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59628" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50259" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
