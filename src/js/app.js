@@ -45,7 +45,8 @@ App = {
         petTemplate.find('.btn-adopt').attr('disabled', 'disabled');
       } else {
         $('#status-messages')[0].innerHTML = '';
-        $('.btn-login').hide();
+        $('.btn-login').addClass('logged-in');
+        $('.btn-login')[0].innerText = 'Clear session';
       }
 
       petsRow.append(petTemplate.html());
@@ -144,6 +145,12 @@ App = {
 
   handleLogin: async function(event) {
     event.preventDefault();
+
+    // User clicked "Clear session"
+    if ($('.btn-login').hasClass('logged-in')) {
+      localStorage.clear();
+      window.location.reload(false);
+    }
 
     if (App.walletConnection.getAccountId() === '') {
       // User needs to log in
