@@ -2,7 +2,6 @@
   "name": "near-pet-shop",
   "version": "1.0.0",
   "description": "Truffle's Pet Shop tutorial running on the NEAR EVM",
-  "main": "truffle.js",
   "directories": {
     "test": "test"
   },
@@ -10,12 +9,15 @@
     "local": "env NEAR_ENV=local parcel src/index.html",
     "betanet": "env NEAR_ENV=betanet parcel src/index.html",
     "testnet": "env NEAR_ENV=testnet parcel src/index.html",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "gh-deploy:betanet": "env NEAR_ENV=betanet parcel build src/index.html --public-url ./ && gh-pages -d dist/",
+    "test": "truffle test"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "parcel-bundler": "^1.12.4"
+    "gh-pages": "^3.1.0",
+    "parcel-bundler": "^1.12.4",
+    "truffle": "^5.1.57"
   },
   "dependencies": {
     "near-web3-provider": "^1.0.5",
