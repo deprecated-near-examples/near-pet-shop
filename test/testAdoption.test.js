@@ -2,7 +2,6 @@ const Adoption = artifacts.require("Adoption");
 
 contract("Adoption", (accounts) => {
   let adoption;
-  let expectedPetId;
 
   before(async () => {
     adoption = await Adoption.deployed();
