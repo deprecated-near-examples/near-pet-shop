@@ -12,6 +12,14 @@ module.exports = {
         masterAccountId: 'test.near',
       }),
     },
+    near_mainnet: {
+      network_id: 1313161554, // See https://chainid.network/
+      skipDryRun: true,
+      provider: () => new NearProvider({
+        networkId: 'mainnet',
+        masterAccountId: process.env.NEAR_MASTER_ACCOUNT
+      }),
+    },
     near_betanet: {
       network_id: "*",
       skipDryRun: true,
