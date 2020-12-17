@@ -132,9 +132,7 @@ App = {
 
   markAdopted: async function() {
     // Set provider to be our provider, as this is a "view" call
-    const getAdoptersInstance = await App.contracts.Adoption.methods.getAdopters.call();
-    // Unclear why I must do a second call here
-    const adopters = await getAdoptersInstance.call();
+    const adopters = await App.contracts.Adoption.methods.getAdopters().call();
     adopters.forEach((adopter, i) => {
       if (adopter !== '0x0000000000000000000000000000000000000000') {
         $('.panel-pet').eq(i).find('button.btn-sign').hide();
