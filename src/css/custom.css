@@ -10,24 +10,48 @@ h3 {
   color: #25282A;
 }
 
-#explorer-link {
+#explorer-link, #status-messages {
   font-size: 23px;
   text-align: center;
 }
 
-/*#explorer-link a {*/
-/*  color: cornflowerblue;*/
-/*}*/
+#response {
+  border-radius: 6px;
+  font-size: 17px;
+  text-align: center;
+  background-color: #F0EC74;
+  color: black;
+}
+
+#status-messages {
+  border-radius: 6px;
+  color: white;
+  background-color: #FF585D;
+}
 
 #explorer-link a:visited, #explorer-link a {
   color: #6AD1E3;
 }
 
 #explorer-link a:hover {
-  color: lightblue;
+  color: #00C1DE;
 }
 
 #hidden-for-parcel img {
   height: 0;
   width: 0;
+}
+
+#wallet-login {
+  text-align: center;
+}
+
+#wallet-login button {
+  margin-bottom: 25px;
+}
+
+@media (min-width: 768px) {
+  #wallet-login button {
+    margin-top: 25px;
+  }
 }
