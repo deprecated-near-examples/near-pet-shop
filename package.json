@@ -6,10 +6,10 @@
     "test": "test"
   },
   "scripts": {
-    "local": "env NEAR_ENV=local parcel src/index.html",
-    "betanet": "env NEAR_ENV=betanet parcel src/index.html",
-    "testnet": "env NEAR_ENV=testnet parcel src/index.html",
-    "gh-deploy:betanet": "env NEAR_ENV=betanet parcel build src/index.html --public-url ./ && gh-pages -d dist/",
+    "local": "NEAR_ENV=local parcel src/index.html",
+    "betanet": "NEAR_ENV=betanet parcel src/index.html",
+    "testnet": "NEAR_ENV=testnet parcel src/index.html",
+    "gh-deploy:betanet": "NEAR_ENV=betanet parcel build src/index.html --public-url ./ && gh-pages -d dist/",
     "test": "truffle test"
   },
   "author": "",

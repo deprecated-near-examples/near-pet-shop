@@ -30,9 +30,13 @@ Replace `YOUR_NAME` in the command below and run it:
     
     env NEAR_MASTER_ACCOUNT=YOUR_NAME.betanet npx truffle migrate --network near_betanet
     
+## Set up trusted relayer
+
+Visit the [simple relayer repository](https://github.com/near/evm-relayer) and follow directions to run it. This will run a small ExpressJS server locally at port 3000.    
+    
 ## Start web app
 
-    npm run betanet
+    env NEAR_RELAY_URL=http:127.0.0.1:3000 npm run betanet
     
 This will run a local website. The terminal will display the URL, which is typically:
 http://localhost:1234

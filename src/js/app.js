@@ -184,8 +184,6 @@ App = {
     return App.markAdopted();
   },
 
-  // Relayer descoped for now
-  // Uncomment "Sign" button in index.html to enable functionality
   handleSign: async function(event) {
     event.preventDefault();
 
@@ -211,7 +209,8 @@ App = {
     // NearTx(string evmId, uint256 nonce, address contractAddress, bytes arguments)
     // See: nearcore/runtime/near-evm-runner/src/utils.rs
 
-    const chainId = parseInt(nearWeb3.currentProvider.version, 10);
+    // With the custom RPC endpoint, chainId will be parseInt(nearWeb3.currentProvider.version, 10);
+    const chainId = 1;
 
     const data = JSON.stringify({
       types: {
@@ -265,7 +264,7 @@ App = {
         }
         const signature = result.result.substr(2);
         const res = $('#response')[0];
-        res.innerHTML = `Signature:<br/>${signature}`;
+        console.log(`Signature: ${signature}`);
         $('#status-messages')[0].innerHTML = '';
 
         const postData = {
@@ -273,7 +272,11 @@ App = {
           signature
         };
 
-        $.post(RELAY_URL, postData)
+        if (!process.env.NEAR_RELAY_URL) {
+          $('#status-messages')[0].innerHTML = 'Did not find NEAR_RELAY_URL. Please see README.';
+        }
+
+        $.post(process.env.NEAR_RELAY_URL, postData)
           .done( function( data ) {
             console.log('data', data);
           res.html = data;
