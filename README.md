@@ -2,7 +2,7 @@
 
 This project is based on Truffle's [Pet Shop Tutorial](https://www.trufflesuite.com/tutorials/pet-shop) but uses NEAR's custom provider called [near-web3-provider](https://github.com/nearprotocol/near-web3-provider) and deploys the Solidity contracts to the [NEAR EVM](https://github.com/near/near-evm).
 
-You may read more about the NEAR EVM in the link above, but suffice it to say it's a smart contract written in Rust that acts as the Ethereum Virtual Machine. This means developers may compile existing Ethereum contracts and deploy them to the NEAR blockchain. The EVM contract may hold multiple Ethereum contracts with transactions operating in a synchronous manner, as opposed to native NEAR smart contracts which are asynchronous. Projects may choose to use a provided `evm` account on a given network, or deploy their own EVM contract.  
+You may read more about the NEAR EVM in the link above. In brief, it's an implementation of the Ethereum Virtual Machine (EVM) incorporated into NEAR. This means developers may preserve existing investment by compiling existing Ethereum contracts and deploying them to the NEAR blockchain as well.
 
 This is made possible by two NEAR libraries:
 
