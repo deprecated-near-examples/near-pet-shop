@@ -12,6 +12,7 @@ App = {
   nearNetworkDefaults: utils.getNetworkConfig(process.env.NEAR_ENV),
   networkConfig: null,
   walletConnection: null,
+  account: null,
 
   init: async function() {
     // Need to set up WalletConnection and then networkConfig
@@ -54,6 +55,7 @@ App = {
 
     if (!this.isLoggedIn) {
       $('#status-messages')[0].innerHTML = 'Please log in to NEAR Wallet…';
+      $('.btn-clear').attr('disabled', 'disabled');
     }
 
     return await App.initWeb3();
@@ -79,7 +81,17 @@ App = {
     nearWeb3 = new Web3(App.nearWeb3Provider);
     ethWeb3 = new Web3(App.ethWeb3Provider);
 
-    return App.initContract();
+    if (this.isLoggedIn) {
+      const accounts = await App.getAccounts(nearWeb3);
+      if (accounts.length) {
+        this.account = accounts[accounts.length - 1];
+      } else {
+        $('#status-messages')[0].innerHTML = 'Issue finding accounts…';
+        return;
+      }
+    }
+
+    return await App.initContract();
   },
 
   initContract: async function() {
@@ -128,6 +140,7 @@ App = {
     $(document).on('click', '.btn-adopt', App.handleAdopt);
     $(document).on('click', '.btn-sign', App.handleSign);
     $(document).on('click', '.btn-login', App.handleLogin);
+    $(document).on('click', '.btn-clear', App.handleClear);
   },
 
   markAdopted: async function() {
@@ -139,6 +152,13 @@ App = {
         $('.panel-pet').eq(i).find('button.btn-adopt').text('Success').attr('disabled', true);
       }
     });
+  },
+
+  handleClear: async function() {
+    event.preventDefault();
+    $(event.target).attr('disabled', true);
+    await App.contracts.Adoption.methods.clear().send({from: App.account});
+    window.location.reload(false);
   },
 
   handleLogin: async function(event) {
@@ -160,22 +180,12 @@ App = {
 
   handleAdopt: async function(event) {
     event.preventDefault();
-    App.contracts.Adoption.setProvider(App.nearWeb3Provider);
 
     const petId = parseInt($(event.target).data('id'));
     $('.panel-pet').eq(petId).find('button.btn-sign').hide();
     $('.panel-pet').eq(petId).find('button.btn-adopt').text('Processing…').attr('disabled', true);
 
-    const accounts = await App.getAccounts(nearWeb3);
-    let account;
-    if (accounts.length) {
-      account = accounts[accounts.length - 1];
-    } else {
-      $('#status-messages')[0].innerHTML = 'Issue finding accounts…';
-      return;
-    }
-
-    const adoptionResult = await App.contracts.Adoption.methods.adopt(petId).send({from: account});
+    const adoptionResult = await App.contracts.Adoption.methods.adopt(petId).send({from: App.account});
     const transactionId = adoptionResult.transactionHash.split(':')[0];
     const dogName = $('.panel-pet').eq(petId).find('.panel-title')[0].innerHTML;
     $('#explorer-link a').attr('href', `${App.networkConfig.explorerUrl}/transactions/${transactionId}`).text(`See ${dogName}'s adoption in NEAR Explorer`);
