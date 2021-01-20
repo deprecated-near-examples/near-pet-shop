@@ -40,6 +40,12 @@ The first time you run this app, the **Adopt** buttons will be disabled until yo
   
 Now you can adopt a pet! Once you've clicked the **Adopt** button pay attention to the top of the page, as a link to NEAR Explorer will appear. (This is similar to [etherscan](https://etherscan.io/) for Ethereum.)
 
+## Testing
+
+Run a local `nearcore` node following [these instructions](https://docs.near.org/docs/evm/evm-local-setup#set-up-near-node). Then run:
+
+    npm run test
+
 ### Troubleshooting
 
 During development while changing the Solidity code, if unexpected behavior continues, consider removing the `build` folder and migrating again.

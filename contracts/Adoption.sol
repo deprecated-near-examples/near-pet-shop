@@ -16,4 +16,11 @@ contract Adoption {
     function getAdopters() public view returns (address[16] memory) {
         return adopters;
     }
+
+    // Clear all adopters
+    function clear() public {
+        for (uint i = 0; i < adopters.length; i++) {
+            adopters[i] = address(0);
+        }
+    }
 }
