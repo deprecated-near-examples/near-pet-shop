@@ -1,6 +1,7 @@
 require('regenerator-runtime/runtime');
 const { nearAPI, utils, NearProvider } = require('near-web3-provider');
 const Contract = require('web3-eth-contract');
+const Web3 = require('web3');
 
 App = {
   nearWeb3Provider: null,
