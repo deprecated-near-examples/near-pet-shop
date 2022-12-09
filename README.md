@@ -1,4 +1,6 @@
-# NEAR Pet Shop
+# ⚠️⛔ DEPRECATED
+
+> This project is not being actively supported, the code is not expected to work nor reflects the latests improvements in our tooling stack
 
 This project is based on Truffle's [Pet Shop Tutorial](https://www.trufflesuite.com/tutorials/pet-shop) but uses NEAR's custom provider called [near-web3-provider](https://github.com/nearprotocol/near-web3-provider) and deploys the Solidity contracts to the [NEAR EVM](https://github.com/near/near-evm).
 
